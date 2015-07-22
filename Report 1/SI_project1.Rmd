@@ -1,0 +1,133 @@
+---
+title: "Statistical Inference - Course Project 1"
+author: Ivana Peretin
+date: July, 2015
+output:
+  pdf_document:
+    fig_caption: true
+---
+
+## Overview
+
+The purpose of this project is to use simulation to explore inference. We will 
+investigate exponential distribution and compare it with the Central Limit Theorem.
+Via simulation and associated explanatory text we will illustrate the properties of the distribution of the mean of 40 exponentials through the following points:
+
+1. Compare the sample mean to the theoretical mean of the distribution.
+2. Compare the sample variance to the theoretical variance of the distribution.
+3. Show that the distribution is approximately normal.
+
+##Simulations
+
+The exponential distribution will be simulated in R with *rexp(n, lambda)* where 
+lambda is the rate parameter. The mean of exponential distribution is 1/lambda 
+and the standard deviation is also 1/lambda. For all of the simulations we will 
+set lambda = 0.2. We will create a thousand simulations of 40 exponentials and store it
+all in a matrix with 1000 rows and 40 columns.
+
+```{r cache=TRUE}
+set.seed(12345)
+
+lambda <- 0.2
+n_exp <- 40 
+n_sim <- 1000
+
+simulations <- matrix(rexp(n_exp*n_sim, lambda), n_sim, n_exp)
+```
+```{r echo=F}
+library(pander)
+pander(summary(simulations[1,]), caption="Summary example for a sample of 40 exponentials")
+```
+
+### Sample mean vs. Theoretical mean
+
+Our next step will be to calculate a mean value for each sample of 40 exponentials.
+Calculated mean values will be shown in a histogram and compared to the theoretical
+mean of the sampling distribution which is equal to 5.
+
+```{r cache=TRUE}
+obs_means <- rowMeans(simulations)
+```
+```{r fig.width=5, fig.height=5, fig.cap="Comparison of sample mean (red line) and theoretical mean (blue line", echo=F}
+library(pander)
+library(ggplot2)
+
+pander(summary(obs_means), caption="Simulated sample means summary")
+ggplot(data.frame(obs_means), aes(x = obs_means)) + 
+        geom_histogram(binwidth = 0.3, fill = "cadetblue3", color = "black", alpha = 0.6) +
+        scale_x_continuous(breaks = seq(0,9,0.5)) +
+        geom_vline(xintercept=c(mean(obs_means),5), color = c("red","dodgerblue2"), size=1) +
+        xlab("Sample means") + ggtitle("Sample means distribution")
+```
+
+*Figure 1* shows the distribution of simulated sample means. Blue vertical line marks 
+the theoretical mean and red line marks the observed mean (of sample means) of 
+the sampling distribution. Observed mean is equal to **4.97** which is very close to 
+the theoretical mean **5**.
+
+### Sample variance vs. Theoretical variance
+
+It was stated in lecture notes that the variance of the sample mean is the population
+variance divided by the sample size. Therefore, our first step will be to calculate variance for each sample of 40 exponentials. Our sampling distribution is Exp(0.2) and we would expect that mean value of the 1000 sample variances will be near the theoretical value of **25**. As we can see from the table below, mean observed variance is equal to **24.57** which is very close to 25.
+
+```{r cache=TRUE}
+obs_vars <- apply(simulations, 1, var)
+```
+```{r echo=F}
+library(pander)
+library(ggplot2)
+
+pander(summary(obs_vars), caption="Summary of simulated sample variances")
+#ggplot(data.frame(obs_vars), aes(x = obs_vars)) + 
+#        geom_histogram(binwidth = 4, fill = "cadetblue3", color = "black", alpha = 0.6) +
+#        scale_x_continuous(breaks = seq(0,100,5)) +
+#       geom_vline(xintercept=c(mean(obs_vars),25), color = c("red","dodgerblue2"), size=1) +
+#       xlab("Sample variance") + ggtitle("Sample variances distribution")
+```
+
+Taking all this into account, the theoretical variance of sample mean is 25/40 = **0.625**. 
+Now, lets divide the calculated sample variances with sample size. From the table below
+we can see that the mean variance of the sample mean is **0.614** which is near the theoretical value 0.625.
+
+```{r cache=TRUE}
+obs_vars_mn <- apply(simulations, 1, function(x){var(x)/n_exp})
+```
+```{r fig.width=5, fig.height=4.5, fig.cap="Comparison of variance of sample mean (red line) and theoretical variance (blue line)", echo=F}
+library(pander)
+library(ggplot2)
+
+pander(summary(obs_vars_mn), caption="Summary of simulated sample mean variances")
+ggplot(data.frame(obs_vars_mn), aes(x = obs_vars_mn)) + 
+        geom_histogram(binwidth = 0.1, fill = "cadetblue3", color = "black", alpha = 0.6) +
+        scale_x_continuous(breaks = seq(0,4,0.2)) +
+        geom_vline(xintercept=c(mean(obs_vars_mn),0.625), color = c("red","dodgerblue2"), size=1) + xlab("Sample means variance") + ggtitle("Distribution of sample means variance")
+```
+
+*Figure 2* shows the distribution of variances of sample means. Blue vertical line marks 
+the theoretical variance and red line marks the mean observed variance (of the sample variances) of the sampling distrbution. Note that distribution is skewed to the right 
+and not centered around what it's estimating (population variance). This could be fixed by increasing the sample size.
+
+### Comparison with Normal distribution
+
+Finally, lets compare distribution of sample means to normal distribution.
+
+```{r cache=TRUE, fig.width=5, fig.height=3.3, fig.cap="Comparison of simulated sample means distribution (red) and normal distribution (blue)", echo=F}
+library(ggplot2)
+
+ggplot(data.frame(obs_means), aes(x = obs_means)) + 
+        geom_histogram(binwidth = 0.3, fill = "cadetblue3", color = "black", alpha = 0.6, aes(y=..density..)) +
+        geom_density(aes(obs_means), color="red", size=1, linetype="dashed") +
+        geom_vline(xintercept=c(mean(obs_means),5), color = c("red","dodgerblue2"), size=1) +
+        stat_function(fun=dnorm,args=list(mean=5, sd=sqrt(0.625)), color="dodgerblue2", size=1, linetype="dashed")+
+        xlab("Sample means") + ggtitle("Comparison with normal distribution")
+```
+
+The figure above shows that the density of sample means (red dashed line) fits closely to a normal distribution (blue dashed line) plotted with theoretical mean and variance. 
+The qqplot below also suggest normality. Therefore, we can conclude that due to the 
+Central Limit Theorem the distribution of sample means is approximately N(5, 0.625).
+Source code for this report can be found on [GitHub](https://github.com/ipocepan/Statistical-Inference/blob/master/Report%201/SI_project1.Rmd).
+
+```{r cache=TRUE, fig.width=4, fig.height=3.6, fig.cap="Comparison of sample quantiles and normal quantiles", echo=F}
+library(ggplot2)
+qqnorm(obs_means)
+```
