@@ -151,3 +151,4 @@ effect on teeth growth in guinea pigs.
 In this analysis, our significance level was set at 0.05 and we assumed equal variances across the groups. Also, we assume that guinea pigs were randomly assigned certain 
 dosage and delivery method so that groups we compare are independent.
 Finally, we assumed normality of dependent variable - teeth length.
+Complete source code for this report can be found on [GitHub](https://github.com/ipocepan/Statistical-Inference/tree/master/Report%202).
