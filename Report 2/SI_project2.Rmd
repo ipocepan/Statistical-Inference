@@ -1,0 +1,153 @@
+---
+title: "Statistical Inference - Tooth Growth Data Analysis"
+author: "Ivana Peretin"
+date: "July, 2015"
+output:
+  pdf_document: 
+    fig_caption: yes
+---
+
+The purpose of this report is to explore Tooth Growth data using simple exploratory
+and inferential anlysis. The data measures the length of teeth (**len**) for 10 
+guinea pigs at each of three dose levels (**dose**) of Vitamin C (0.5, 1.0, 2.0 mg) with each of two delivery methods (**supp**: orange juice - OJ, or ascorbic acid - VC).
+Our goal is to study the effects of Vitamin C dosage and delivery method on teeth growth
+in guinea pigs.
+
+## Exploratory Analysis
+
+Our first step will be to get a general sense of data through basic summary tables 
+and plots.
+
+```{r message=F}
+library(pander)
+library(dplyr)
+library(ggplot2)
+data(ToothGrowth)
+```
+```{r echo=F}
+pander(summary(ToothGrowth), caption="ToothGrowth data summary")
+
+tbl1 <- summarise(group_by(ToothGrowth, supp), N = n(), mean = mean(len), 
+                  median = median(len), "sd" = sd(len))
+pander(tbl1, caption="Summary of mean tooth length per delivery method")
+tbl2 <- summarise(group_by(ToothGrowth, dose), N = n(), mean = mean(len), 
+                  median = median(len), "sd" = sd(len))
+pander(tbl2, caption="Summary of mean tooth length per dose")
+tbl3 <- summarise(group_by(ToothGrowth, supp, dose), N = n(), mean = mean(len), 
+                  median = median(len), "sd" = sd(len))
+pander(tbl3, caption="Summary of mean tooth length per delivery method and dose")
+```
+
+From the tables above we can see that mean teeth length is generally larger for delivery
+through orange juice. If we take a look at the scatterplot below (*Figure 1*), we can see that teeth length values are more evenly distributed between low and high values for ascorbic acid (VC), while there is more dots for higher teeth length values in cases where delivery method was orange juice. Also, for both delivery methods the mean teeth length increases
+with the dosage. From the boxplot below (*Figure 2*) the trend can be easily seen. 
+
+```{r cache=T, fig.cap="Teeth length per delivery method", fig.height=4, fig.width=6, echo=F}
+ggplot(ToothGrowth, aes(x=len, y=supp, group=factor(dose), colour=factor(dose))) +
+        geom_point() + 
+        scale_colour_discrete(labels = c("0.5", "1.0", "2.0")) + 
+        scale_x_continuous(breaks = seq(3,35,3)) +
+        labs(x = "Teeth length", y = "Delivery method")
+```
+
+```{r cache=T, fig.cap="Teeth length per dose and delivery method", fig.height=4, fig.width=5, echo=F}
+ggplot(ToothGrowth, aes(factor(dose), len)) +
+        geom_boxplot(fill = "steelblue2", alpha = 0.7) + 
+        labs(y = "Teeth length", x = "Dose") +
+        stat_summary(fun.y = mean, geom = "point", size = 3, col = "cadetblue1") +
+        facet_grid(. ~ supp)
+```
+
+## Inferential analysis
+
+Next step will be to confirm our observations from the previous section by performing 
+several hypothesis tests (two-sample t-test).
+
+**Growth by delivery method**
+
+According to the t-test results p-value is 0.061 which is larger than our confidence 
+level 0.05. Also, the confidence interval contains 0 and we don't have enough evidence
+to reject null hypothesis that there is no significant difference in average teeth length between OJ and VC delivery methods.
+
+```{r cache=T}
+t1 <- t.test(len ~ supp, var.equal=T, data=ToothGrowth)
+```
+```{r cache=T, echo=F}
+tbl <- data.frame( "T"  = t1$statistic, "df" = t1$param, "p-value"  = t1$p.value,
+                    "Lower CI" = t1$conf.int[1], "Upper CI" = t1$conf.int[2],
+                    "mean_OJ" = t1$estimate[1], "mean_VC" = t1$estimate[2],
+                   row.names = "OJ - VC")
+knitr::kable(tbl, caption="Two-sample t-test for delivery method")
+```
+
+**Growth by dose**
+
+For each of the three t-tests we got a very small p-value. None of the confidence intervals contains 0. Therefore, for the confidence level 0.05 we will reject null hypothesis in favour
+of the alternative that true difference in mean teeth length between dosages is less than 0.
+In every test we compared smaller dose to larger, and tests showed that mean teeth length
+increases significantly as the dosage increases.
+
+```{r cache=T}
+t1 <- t.test(len ~ dose, alternative="less", var.equal=T, data=ToothGrowth[ToothGrowth$dose!=2.0,])
+t2 <- t.test(len ~ dose, alternative="less", var.equal=T, data=ToothGrowth[ToothGrowth$dose!=1.0,])
+t3 <- t.test(len ~ dose, alternative="less", var.equal=T, data=ToothGrowth[ToothGrowth$dose!=0.5,])
+```
+```{r cache=T, echo=F}
+tbl1 <- data.frame( "T"  = t1$statistic, "df" = t1$param, "p-value"  = t1$p.value,
+                    "Lower CI" = t1$conf.int[1], "Upper CI" = t1$conf.int[2],
+                    "mean_d1" = t1$estimate[1], "mean_d2" = t1$estimate[2],
+                   row.names = "0.5 - 1.0")
+tbl2 <- data.frame( "T"  = t2$statistic, "df" = t2$param, "p-value"  = t2$p.value,
+                    "Lower CI" = t2$conf.int[1], "Upper CI" = t2$conf.int[2],
+                    "mean_d1" = t2$estimate[1], "mean_d2" = t2$estimate[2],
+                   row.names = "0.5 - 2.0")
+tbl3 <- data.frame( "T"  = t3$statistic, "df" = t3$param, "p-value"  = t3$p.value,
+                    "Lower CI" = t3$conf.int[1], "Upper CI" = t3$conf.int[2],
+                    "mean_d1" = t3$estimate[1], "mean_d2" = t3$estimate[2],
+                   row.names = "1.0 - 2.0")
+knitr::kable(rbind(tbl1, tbl2, tbl3), caption="Two-sample t-test by dosage")
+```
+
+\pagebreak
+
+**Growth by delivery method and dosage**
+
+In case of 0.5 and 1.0 dosage, p-value was below significance level and confidence 
+intervals did not contain 0. We rejected null hypothesis in favour of alternative 
+that true difference in means is greater than 0. There was enough evidence that,
+for 0.5 and 1.0 dosage, OJ delivery method yielded higher mean teeth length than
+VC delivery method. For 2.0 dosage p-value was 0.518 and confidence interval contained 0,
+so there was no sufficient evidence that there is a significant difference in mean teeth length between delivery methods.
+
+```{r cache=T}
+t1 <- t.test(len ~ supp, alternative="greater", var.equal=T, data=ToothGrowth[ToothGrowth$dose==0.5,])
+t2 <- t.test(len ~ supp, alternative="greater", var.equal=T, data=ToothGrowth[ToothGrowth$dose==1.0,])
+t3 <- t.test(len ~ supp, alternative="greater", var.equal=T, data=ToothGrowth[ToothGrowth$dose==2.0,])
+```
+```{r cache=T, echo=F}
+tbl1 <- data.frame( "T"  = t1$statistic, "df" = t1$param, "p-value"  = t1$p.value,
+                    "Lower CI" = t1$conf.int[1], "Upper CI" = t1$conf.int[2],
+                    "mean_d1" = t1$estimate[1], "mean_d2" = t1$estimate[2],
+                   row.names = "OJ - VC, 0.5")
+tbl2 <- data.frame( "T"  = t2$statistic, "df" = t2$param, "p-value"  = t2$p.value,
+                    "Lower CI" = t2$conf.int[1], "Upper CI" = t2$conf.int[2],
+                    "mean_d1" = t2$estimate[1], "mean_d2" = t2$estimate[2],
+                   row.names = "OJ - VC, 1.0")
+tbl3 <- data.frame( "T"  = t3$statistic, "df" = t3$param, "p-value"  = t3$p.value,
+                    "Lower CI" = t3$conf.int[1], "Upper CI" = t3$conf.int[2],
+                    "mean_d1" = t3$estimate[1], "mean_d2" = t3$estimate[2],
+                   row.names = "OJ - VC, 2.0")
+knitr::kable(rbind(tbl1, tbl2, tbl3), caption="Two-sample t-test by delivery method and dosage")
+```
+
+## Conclusion
+
+From the performed analysis, we can conclude that higher dosages of Vitamin C generally 
+improve teeth growth in guinea pigs. For dosages 0.5 and 1.0 there is evidence that
+delivery through orange juice yielded better results in teeth growth, while for 2.0 dosage
+delivery method had no effect. Delivery method itself, had no overall 
+effect on teeth growth in guinea pigs.
+
+In this analysis, our significance level was set at 0.05 and we assumed equal variances across the groups. Also, we assume that guinea pigs were randomly assigned certain 
+dosage and delivery method so that groups we compare are independent.
+Finally, we assumed normality of dependent variable - teeth length.

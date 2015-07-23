@@ -130,4 +130,5 @@ Source code for this report can be found on [GitHub](https://github.com/ipocepan
 ```{r cache=TRUE, fig.width=4, fig.height=3.6, fig.cap="Comparison of sample quantiles and normal quantiles", echo=F}
 library(ggplot2)
 qqnorm(obs_means)
+qqline(obs_means)
 ```
